@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using NUnit.Framework.Internal;
 using UnityEngine;
+using UnityEngine.SocialPlatforms.Impl;
 using UnityEngine.UI;
 
 public class GameController_DT360 : MonoBehaviour
@@ -39,31 +40,56 @@ public class GameController_DT360 : MonoBehaviour
     /***************************************/
     /*****  IMPLEMENT YOUR CODE HERE  ******/
     /***************************************/
-    int pickMiniMax(int turn, bool isWinner)
+    
+    int whoWin()
     {
-        if (isWinner) {
-            int bestScore = int.MinValue;
-            int bestSpot = -1;
-
-            for (int i = 0; i < 9; i++)
+        int[] lines = {
+        markedSpaces[0] + markedSpaces[1] + markedSpaces[2],
+        markedSpaces[3] + markedSpaces[4] + markedSpaces[5],
+        markedSpaces[6] + markedSpaces[7] + markedSpaces[8],
+        markedSpaces[0] + markedSpaces[3] + markedSpaces[6],
+        markedSpaces[1] + markedSpaces[4] + markedSpaces[7],
+        markedSpaces[2] + markedSpaces[5] + markedSpaces[8],
+        markedSpaces[0] + markedSpaces[4] + markedSpaces[8],
+        markedSpaces[2] + markedSpaces[4] + markedSpaces[6]
+    };
+        foreach (int s in lines)
+        {
+            if (s == 6) // X wins
             {
-                if (markedSpaces[i] == EMPTY_SPACE)
-                {
-                    markedSpaces[i] = 2; // try O here
-                    int score = pickMiniMax(turn, Winnercheck()); // next turn is X (minimizer)
-                    markedSpaces[i] = EMPTY_SPACE;
-
-                    if (score > bestScore)
-                    {
-                        bestScore = score;
-                        bestSpot = i;
-                    }
-                }
+                return 10; 
             }
-            return bestSpot;
+            if (s == 3) // O wins
+            {
+                return -10;  
+            }
+            
+        }
+        return 0;
+    }
+
+    int miniMaxCalulation(int turn)
+    {
+        int score = whoWin();
+        if(score != 0)
+        {
+            return score;
         }
 
-        if (turn % 2 == 0)
+        bool hasEmpty = false;
+        for (int i = 0; i < 9; i++) {
+            if (markedSpaces[i] == EMPTY_SPACE) {
+                hasEmpty = true;
+                break;
+            }
+        }
+
+        if (!hasEmpty)
+        {
+            return 0; // draw
+        }
+
+        if (turn % 2 == 0) // Max
         {
             int best = int.MinValue;
             for (int i = 0; i < 9; i++)
@@ -71,14 +97,13 @@ public class GameController_DT360 : MonoBehaviour
                 if (markedSpaces[i] == EMPTY_SPACE)
                 {
                     markedSpaces[i] = 2;
-                    best = Mathf.Max(best, pickMiniMax(turn + 1, Winnercheck()));
+                    best = Mathf.Max(best, miniMaxCalulation(turn + 1));
                     markedSpaces[i] = EMPTY_SPACE;
                 }
             }
             return best;
         }
-
-        else
+        else // Min
         {
             int best = int.MaxValue;
             for (int i = 0; i < 9; i++)
@@ -86,12 +111,35 @@ public class GameController_DT360 : MonoBehaviour
                 if (markedSpaces[i] == EMPTY_SPACE)
                 {
                     markedSpaces[i] = 1;
-                    best = Mathf.Min(best, pickMiniMax(turn + 1, Winnercheck()));
+                    best = Mathf.Min(best, miniMaxCalulation(turn + 1));
                     markedSpaces[i] = EMPTY_SPACE;
                 }
             }
+            return best;
         }
-            return 0;
+    }
+    int pickMiniMax(int turn)
+    {
+        int bestScore = int.MinValue;
+        int bestSpot = -1;
+
+        for (int i = 0; i < 9; i++)
+        {
+            if (markedSpaces[i] == EMPTY_SPACE)
+            {
+                markedSpaces[i] = 2;
+                int score = miniMaxCalulation(turn);
+                markedSpaces[i] = EMPTY_SPACE;
+
+                if (score > bestScore)
+                {
+                    bestScore = score;
+                    bestSpot = i;
+                }
+            }
+        }
+
+        return bestSpot;
     }
     /***************************************/
     /***** END OF YOUR IMPLEMENTATION ******/
@@ -198,7 +246,7 @@ public class GameController_DT360 : MonoBehaviour
                     break;
 
                 case Strategy.MiniMax:          // compute from MiniMax algorithm
-                    spot = pickMiniMax(turnCount, Winnercheck());
+                    spot = pickMiniMax(turnCount);
                     TicTacToeButton(spot);
                     break;
             }
